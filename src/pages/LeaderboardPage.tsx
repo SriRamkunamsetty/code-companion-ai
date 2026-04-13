@@ -15,7 +15,7 @@ const users = [
 const rankIcons: Record<string, React.ReactNode> = {
   gold: <Crown className="w-5 h-5 text-warning" />,
   silver: <Medal className="w-5 h-5 text-muted-foreground" />,
-  bronze: <Medal className="w-5 h-5 text-orange-400" />,
+  bronze: <Medal className="w-5 h-5 text-warning" />,
 };
 
 export default function LeaderboardPage() {
