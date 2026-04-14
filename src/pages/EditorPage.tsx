@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { OutputPanel } from "@/components/editor/OutputPanel";
-import { Play, RotateCcw, ChevronDown } from "lucide-react";
+import { Play, RotateCcw, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const LANGUAGES = [
   { id: "python", label: "Python", defaultCode: '# Welcome to CodeForge!\nprint("Hello, World!")' },
@@ -19,6 +21,7 @@ export default function EditorPage() {
   const [error, setError] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [executionTime, setExecutionTime] = useState<number | undefined>();
 
   const currentLang = LANGUAGES[langIndex];
 
@@ -26,26 +29,50 @@ export default function EditorPage() {
     setIsRunning(true);
     setOutput("");
     setError("");
+    setExecutionTime(undefined);
 
-    // Simulate execution (Judge0 integration will be added)
-    setTimeout(() => {
-      try {
-        if (currentLang.id === "python" || currentLang.id === "javascript") {
-          setOutput("Hello, World!\n");
-        } else {
-          setOutput("Hello, World!\n");
-        }
-      } catch {
-        setError("Execution error occurred");
+    const start = performance.now();
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("execute-code", {
+        body: { code, language: currentLang.id },
+      });
+
+      const elapsed = Math.round(performance.now() - start);
+      setExecutionTime(elapsed);
+
+      if (fnError) {
+        setError(fnError.message || "Execution failed");
+        return;
       }
+
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+
+      if (data.stderr || data.compile_output) {
+        setError(data.compile_output || data.stderr);
+      }
+      if (data.stdout) {
+        setOutput(data.stdout);
+      }
+      if (!data.stdout && !data.stderr && !data.compile_output) {
+        setOutput("(No output)");
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to execute code");
+      toast.error("Code execution failed");
+    } finally {
       setIsRunning(false);
-    }, 1200);
+    }
   };
 
   const handleReset = () => {
     setCode(currentLang.defaultCode);
     setOutput("");
     setError("");
+    setExecutionTime(undefined);
   };
 
   const handleLangChange = (index: number) => {
@@ -59,7 +86,7 @@ export default function EditorPage() {
   return (
     <div className="h-screen flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <div className="relative">
             <button
@@ -96,8 +123,12 @@ export default function EditorPage() {
             Reset
           </Button>
           <Button size="sm" onClick={handleRun} disabled={isRunning} className="gradient-primary text-primary-foreground border-0">
-            <Play className="w-4 h-4 mr-1.5" />
-            Run
+            {isRunning ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+            ) : (
+              <Play className="w-4 h-4 mr-1.5" />
+            )}
+            {isRunning ? "Running..." : "Run"}
           </Button>
         </div>
       </div>
@@ -108,7 +139,7 @@ export default function EditorPage() {
           <CodeEditor language={currentLang.id} value={code} onChange={setCode} />
         </div>
         <div className="h-48 lg:h-auto lg:w-[400px] border-t lg:border-t-0 lg:border-l border-border">
-          <OutputPanel output={output} error={error} isRunning={isRunning} executionTime={142} />
+          <OutputPanel output={output} error={error} isRunning={isRunning} executionTime={executionTime} />
         </div>
       </div>
     </div>
