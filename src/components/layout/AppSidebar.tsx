@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -23,13 +25,13 @@ const navItems = [
   { icon: Bot, label: "AI Mentor", path: "/ai-mentor" },
 ];
 
-const bottomItems = [
-  { icon: Settings, label: "Settings", path: "/settings" },
-];
-
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
+
+  const displayName = profile?.display_name || user?.email?.split("@")[0] || "User";
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <motion.aside
@@ -61,7 +63,7 @@ export function AppSidebar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
                 isActive
                   ? "bg-primary/10 text-primary shadow-glow"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -71,29 +73,35 @@ export function AppSidebar() {
               {!collapsed && (
                 <span className="text-sm font-medium truncate">{item.label}</span>
               )}
-              {isActive && (
-                <motion.div
-                  layoutId="activeIndicator"
-                  className="absolute left-0 w-0.5 h-6 rounded-r-full bg-primary"
-                />
-              )}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom */}
-      <div className="py-4 px-2 space-y-1 border-t border-border">
-        {bottomItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-          >
-            <item.icon className="w-5 h-5 shrink-0" />
-            {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
-          </Link>
-        ))}
+      {/* User + Bottom */}
+      <div className="py-3 px-2 space-y-1 border-t border-border">
+        {/* User info */}
+        <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${collapsed ? "justify-center" : ""}`}>
+          <Avatar className="w-7 h-7 shrink-0">
+            <AvatarImage src={profile?.avatar_url || undefined} />
+            <AvatarFallback className="text-xs bg-primary/20 text-primary">{initials}</AvatarFallback>
+          </Avatar>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">Lvl {profile?.level || 1}</p>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={signOut}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all w-full"
+        >
+          <LogOut className="w-5 h-5 shrink-0" />
+          {!collapsed && <span className="text-sm font-medium">Sign Out</span>}
+        </button>
+
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all w-full"
