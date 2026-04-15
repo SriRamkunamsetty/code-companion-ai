@@ -42,14 +42,11 @@ serve(async (req) => {
     // Determine which Judge0 endpoint to use
     // If key looks like a RapidAPI key, use RapidAPI; otherwise use it as auth token for self-hosted
     // Default: use the free public Sulu-hosted instance
-    let judge0Url = "https://judge0-ce.p.sulu.sh";
+    let judge0Url = "https://ce.judge0.com";
     const headers: Record<string, string> = { "Content-Type": "application/json" };
 
     if (apiKey) {
-      // Check if it's a RapidAPI key (they typically start with certain patterns)
-      // Try Sulu first with the key as authentication token
-      judge0Url = "https://judge0-ce.p.sulu.sh";
-      headers["Authorization"] = `Bearer ${apiKey}`;
+      headers["X-Auth-Token"] = apiKey;
     }
 
     console.log(`Submitting to Judge0: ${judge0Url}, language: ${language} (${languageId})`);
