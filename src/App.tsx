@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const EditorPage = lazy(() => import("./pages/EditorPage"));
 const CoursesPage = lazy(() => import("./pages/CoursesPage"));
+const CourseDetailPage = lazy(() => import("./pages/CourseDetailPage"));
 const PracticePage = lazy(() => import("./pages/PracticePage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const AIMentorPage = lazy(() => import("./pages/AIMentorPage"));
