@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { OutputPanel } from "@/components/editor/OutputPanel";
-import { Play, RotateCcw, ChevronDown, Loader2 } from "lucide-react";
+import { Play, RotateCcw, ChevronDown, Loader2, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 const LANGUAGES = [
   { id: "python", label: "Python", defaultCode: '# Welcome to CodeForge!\nprint("Hello, World!")' },
@@ -15,13 +17,22 @@ const LANGUAGES = [
 ];
 
 export default function EditorPage() {
-  const [langIndex, setLangIndex] = useState(0);
-  const [code, setCode] = useState(LANGUAGES[0].defaultCode);
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+
+  const initialLang = LANGUAGES.findIndex((l) => l.id === searchParams.get("lang"));
+  const initialCode = searchParams.get("code");
+  const lessonId = searchParams.get("lesson");
+
+  const [langIndex, setLangIndex] = useState(initialLang >= 0 ? initialLang : 0);
+  const [code, setCode] = useState(initialCode || LANGUAGES[initialLang >= 0 ? initialLang : 0].defaultCode);
+  const [stdin, setStdin] = useState("");
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [executionTime, setExecutionTime] = useState<number | undefined>();
+  const [showStdin, setShowStdin] = useState(false);
 
   const currentLang = LANGUAGES[langIndex];
 
@@ -35,7 +46,7 @@ export default function EditorPage() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("execute-code", {
-        body: { code, language: currentLang.id },
+        body: { code, language: currentLang.id, stdin: stdin || undefined },
       });
 
       const elapsed = Math.round(performance.now() - start);
@@ -60,6 +71,23 @@ export default function EditorPage() {
       if (!data.stdout && !data.stderr && !data.compile_output) {
         setOutput("(No output)");
       }
+
+      // Save submission
+      if (user) {
+        await supabase.from("code_submissions").insert({
+          user_id: user.id,
+          lesson_id: lessonId || null,
+          language: currentLang.id,
+          code,
+          stdin: stdin || null,
+          stdout: data.stdout || null,
+          stderr: data.stderr || null,
+          compile_output: data.compile_output || null,
+          status: data.status?.description || "Unknown",
+          execution_time: data.time || null,
+          memory: data.memory || null,
+        });
+      }
     } catch (err: any) {
       setError(err.message || "Failed to execute code");
       toast.error("Code execution failed");
@@ -69,9 +97,10 @@ export default function EditorPage() {
   };
 
   const handleReset = () => {
-    setCode(currentLang.defaultCode);
+    setCode(initialCode || currentLang.defaultCode);
     setOutput("");
     setError("");
+    setStdin("");
     setExecutionTime(undefined);
   };
 
@@ -86,12 +115,12 @@ export default function EditorPage() {
   return (
     <div className="h-screen flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
         <div className="flex items-center gap-3">
           <div className="relative">
             <button
               onClick={() => setShowLangMenu(!showLangMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-sm font-medium hover:bg-secondary/80 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
             >
               {currentLang.label}
               <ChevronDown className="w-3.5 h-3.5" />
@@ -100,14 +129,14 @@ export default function EditorPage() {
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-card overflow-hidden z-50"
+                className="absolute top-full left-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]"
               >
                 {LANGUAGES.map((l, i) => (
                   <button
                     key={l.id}
                     onClick={() => handleLangChange(i)}
-                    className={`block w-full text-left px-4 py-2 text-sm hover:bg-secondary transition-colors ${
-                      i === langIndex ? "text-primary" : "text-foreground"
+                    className={`block w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors ${
+                      i === langIndex ? "text-primary font-medium" : "text-foreground"
                     }`}
                   >
                     {l.label}
@@ -116,13 +145,23 @@ export default function EditorPage() {
               </motion.div>
             )}
           </div>
+
+          <button
+            onClick={() => setShowStdin(!showStdin)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              showStdin ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            Input
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={handleReset}>
             <RotateCcw className="w-4 h-4 mr-1.5" />
             Reset
           </Button>
-          <Button size="sm" onClick={handleRun} disabled={isRunning} className="gradient-primary text-primary-foreground border-0">
+          <Button size="sm" onClick={handleRun} disabled={isRunning} className="bg-primary text-primary-foreground">
             {isRunning ? (
               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
             ) : (
@@ -135,8 +174,24 @@ export default function EditorPage() {
 
       {/* Editor + Output */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        <div className="flex-1 min-h-0">
-          <CodeEditor language={currentLang.id} value={code} onChange={setCode} />
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1">
+            <CodeEditor language={currentLang.id} value={code} onChange={setCode} />
+          </div>
+          {showStdin && (
+            <div className="border-t border-border bg-card">
+              <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border">
+                <Terminal className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Standard Input</span>
+              </div>
+              <textarea
+                value={stdin}
+                onChange={(e) => setStdin(e.target.value)}
+                placeholder="Enter input for your program..."
+                className="w-full h-24 px-3 py-2 bg-card text-sm font-mono resize-none focus:outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+          )}
         </div>
         <div className="h-48 lg:h-auto lg:w-[400px] border-t lg:border-t-0 lg:border-l border-border">
           <OutputPanel output={output} error={error} isRunning={isRunning} executionTime={executionTime} />
