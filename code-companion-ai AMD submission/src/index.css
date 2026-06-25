@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 16% 8%;
+    --foreground: 220 13% 91%;
+
+    --card: 220 16% 11%;
+    --card-foreground: 220 13% 91%;
+
+    --popover: 220 16% 11%;
+    --popover-foreground: 220 13% 91%;
+
+    --primary: 210 100% 56%;
+    --primary-foreground: 220 16% 4%;
+
+    --secondary: 220 16% 16%;
+    --secondary-foreground: 220 13% 85%;
+
+    --muted: 220 14% 14%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 165 80% 45%;
+    --accent-foreground: 220 16% 4%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 210 100% 56%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 16% 9%;
+    --sidebar-foreground: 220 13% 85%;
+    --sidebar-primary: 210 100% 56%;
+    --sidebar-primary-foreground: 220 16% 4%;
+    --sidebar-accent: 220 16% 14%;
+    --sidebar-accent-foreground: 220 13% 85%;
+    --sidebar-border: 220 14% 16%;
+    --sidebar-ring: 210 100% 56%;
+
+    /* Custom tokens */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 210 100% 56%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 56%), hsl(250 90% 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(165 80% 45%), hsl(210 100% 56%));
+    --gradient-surface: linear-gradient(180deg, hsl(220 16% 12%), hsl(220 16% 8%));
+
+    --shadow-glow: 0 0 20px hsl(210 100% 56% / 0.15);
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.3);
+
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-display);
+  }
+
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+  .gradient-surface {
+    background: var(--gradient-surface);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
